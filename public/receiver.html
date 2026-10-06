@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Push Receiver</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; padding: 0 1rem; }
+    button { font-size: 1.1rem; padding: .7rem 1.2rem; }
+    #code { font-size: 2.5rem; letter-spacing: .3rem; font-weight: 700; }
+    #status { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Push Receiver</h1>
+  <p>Subscribe this device, then use the pairing code on the sender console.</p>
+  <button id="subscribe">Subscribe</button>
+  <p id="status">Not subscribed</p>
+  <p>Pairing code: <span id="code">------</span></p>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const urlBase64ToUint8Array = (s) => {
+      const pad = '='.repeat((4 - (s.length % 4)) % 4);
+      const raw = atob((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
+      return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+    };
+
+    $('subscribe').addEventListener('click', async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') throw new Error('Notification permission ' + permission);
+
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+
+        const { publicKey } = await (await fetch('/api/vapid-key')).json();
+        const subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ subscription }),
+        });
+        const { code } = await res.json();
+        $('code').textContent = code;
+        $('status').textContent = 'Subscribed';
+      } catch (err) {
+        $('status').textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QA Test Runner</title>
+  <style>
+    :root { --bg: #f4f5f7; --card: #fff; --line: #e3e5e8; --ink: #1c1e21; --mute: #6b7280; --ok: #16a34a; --bad: #dc2626; --accent: #2563eb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100vh; display: flex; flex-direction: column; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    header { display: flex; align-items: center; gap: .6rem; padding: .6rem 1rem; background: var(--card); border-bottom: 1px solid var(--line); font-weight: 700; }
+    header small { font-weight: 400; color: var(--mute); }
+    #summary { margin-left: auto; font-weight: 600; font-size: .9rem; }
+    .layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 440px 1fr; }
+    .left { display: flex; flex-direction: column; min-height: 0; background: var(--card); border-right: 1px solid var(--line); }
+    .tabs { display: flex; border-bottom: 1px solid var(--line); }
+    .tabs button { flex: 1; padding: .6rem; border: 0; background: none; cursor: pointer; font-size: .9rem; color: var(--mute); border-bottom: 2px solid transparent; }
+    .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .tabpane { flex: 1; min-height: 0; overflow: auto; padding: .8rem; display: none; }
+    .tabpane.active { display: block; }
+    textarea { width: 100%; height: 260px; font: 12.5px/1.5 ui-monospace, monospace; padding: .6rem; border: 1px solid var(--line); border-radius: 6px; resize: none; }
+    .hint { color: var(--mute); font-size: .8rem; margin: .4rem 0; }
+    .btns { display: flex; gap: .5rem; }
+    .btns button { padding: .55rem 1.2rem; font-size: .95rem; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; background: #fff; }
+    #run { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:disabled { opacity: .5; cursor: default; }
+
+    .tc-head { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .4rem; font-size: .85rem; color: var(--mute); }
+    .tc-head b { color: var(--ink); } .tc-head label { margin-left: auto; cursor: pointer; }
+    #tcList { border: 1px solid var(--line); border-radius: 8px; max-height: 250px; overflow: auto; margin-bottom: .6rem; }
+    .tc { display: flex; align-items: flex-start; gap: .5rem; padding: .45rem .6rem; border-bottom: 1px solid var(--line); font-size: .85rem; cursor: pointer; }
+    .tc:last-child { border-bottom: 0; } .tc:hover { background: #f7f8fa; }
+    .tc.running { background: #eff6ff; } .tc.pass { background: #f0fdf4; } .tc.fail { background: #fef2f2; }
+    .tc .nm { flex: 1; } .tc .meta { color: var(--mute); font-size: .72rem; margin-top: .1rem; }
+    .chip { display: inline-block; font-size: .66rem; padding: 0 .35rem; border-radius: 3px; background: #eef0f3; color: #4b5563; margin-right: .2rem; }
+    .st { width: 1.1rem; text-align: center; flex: none; }
+    .kw { font-weight: 700; color: #7c3aed; margin-right: .3rem; }
+    .step.done .tips { display: none; } .step.done.open .tips { display: grid; }
+    .step.done .head { cursor: pointer; }
+    .more { color: var(--mute); font-size: .72rem; margin-left: 1.6rem; }
+    .scenario { font-weight: 700; margin: .4rem 0 .6rem; color: var(--accent); }
+    .step { background: #f7f8fa; border: 1px solid var(--line); border-radius: 8px; margin-bottom: .55rem; padding: .55rem .7rem; }
+    .step.fail { border-color: var(--bad); background: #fef2f2; }
+    .head { display: flex; gap: .5rem; align-items: flex-start; font-size: .88rem; }
+    .head .txt { flex: 1; }
+    .badge { font-size: .68rem; padding: .1rem .4rem; border-radius: 4px; background: #e5e7eb; text-transform: uppercase; letter-spacing: .03em; margin-right: .3rem; }
+    .badge.android { background: #dcfce7; } .badge.web { background: #dbeafe; }
+    .icon { width: 1.1rem; text-align: center; flex: none; }
+    .spin { display: inline-block; width: .8rem; height: .8rem; border: 2px solid #cbd5e1; border-top-color: var(--accent); border-radius: 50%; animation: s .8s linear infinite; }
+    @keyframes s { to { transform: rotate(360deg); } }
+    .tips { margin: .45rem 0 0 1.6rem; display: grid; gap: .25rem; }
+    .tip { display: flex; gap: .4rem; font-size: .8rem; color: #374151; background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: .25rem .5rem; }
+    .err { margin: .4rem 0 0 1.6rem; color: var(--bad); font-size: .8rem; white-space: pre-wrap; }
+    .ok { color: var(--ok); } .bad { color: var(--bad); }
+    #reports a { display: block; font-size: .85rem; margin: .2rem 0; }
+    details { margin-top: .8rem; } summary { cursor: pointer; color: var(--mute); font-size: .85rem; }
+    #raw { background: #111; color: #ddd; font: 11.5px/1.45 ui-monospace, monospace; padding: .5rem; white-space: pre-wrap; max-height: 220px; overflow: auto; border-radius: 6px; margin-top: .4rem; }
+
+    .right { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    .toolbar { display: flex; align-items: center; gap: .8rem; padding: .6rem 1rem; }
+    .toolbar h2 { margin: 0; font-size: 1.15rem; }
+    .seg button { padding: .3rem .8rem; border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: .85rem; }
+    .seg button:first-child { border-radius: 6px 0 0 6px; } .seg button:last-child { border-radius: 0 6px 6px 0; }
+    .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    #size { margin-left: auto; color: var(--mute); font-size: .85rem; }
+    .stage { flex: 1; min-height: 0; margin: 0 1rem 1rem; background: #fff; border: 1px solid var(--line); border-radius: 10px; display: flex; gap: 1rem; justify-content: center; align-items: center; padding: 1rem; overflow: hidden; }
+    .shot { flex: 0 1 auto; min-width: 0; max-width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; font-size: .8rem; color: var(--mute); }
+    .shot.show { display: flex; }
+    .shot img { max-width: 100%; max-height: calc(100% - 1.6rem); object-fit: contain; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.18); background: #222; }
+    .shot img:not([src]) { visibility: hidden; height: 0; }
+    .empty { color: var(--mute); }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .stage { min-height: 360px; } }
+  </style>
+</head>
+<body>
+<header>Midscene.js <small>QA Test Runner · web → Android</small><span id="summary"></span></header>
+
+<div class="layout">
+  <div class="left">
+    <div class="tabs">
+      <button id="tabCases" class="active">Test cases</button>
+      <button id="tabProgress">Progress</button>
+    </div>
+
+    <div id="paneCases" class="tabpane active">
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">
+        <label for="examples" style="font-size:.85rem;color:var(--mute)">Feature file</label>
+        <select id="examples" style="flex:1;padding:.35rem"><option value="">— choose a feature file —</option></select>
+      </div>
+      <div class="tc-head"><b id="tcCount">Test cases</b><span id="tcSel"></span>
+        <label><input type="checkbox" id="tcAll" checked /> Select all</label></div>
+      <div id="tcList"><div class="hint" style="padding:.6rem">No scenarios found.</div></div>
+      <div class="btns"><button id="run">Run selected</button><button id="stop" disabled>Stop</button></div>
+      <details style="margin-top:.8rem" open><summary>Gherkin (editable)</summary>
+        <textarea id="gherkin" spellcheck="false" style="margin-top:.4rem"></textarea></details>
+      <p class="hint">Prefix every step with <code>[web]</code> or <code>[android]</code>. <code>wait until …</code> steps are
+        condition-based waits (no fixed sleeps).</p>
+    </div>
+
+    <div id="paneProgress" class="tabpane">
+      <div id="timeline"><span class="hint">Nothing running yet.</span></div>
+      <h3 style="font-size:.9rem;margin:1rem 0 .3rem">Reports</h3>
+      <div id="reports"><span class="hint">Appear when the run finishes.</span></div>
+      <details><summary>Raw output</summary><div id="raw"></div></details>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="toolbar">
+      <h2>Device</h2>
+      <div class="seg">
+        <button data-view="split" class="active">Split</button>
+        <button data-view="android">Android</button>
+        <button data-view="web">Web</button>
+      </div>
+      <span id="size"></span>
+    </div>
+    <div class="stage">
+      <div class="shot" id="shotAndroid"><img id="androidImg" alt="Android" />Android emulator</div>
+      <div class="shot" id="shotWeb"><img id="webImg" alt="Web" />Web (desktop browser)</div>
+      <div class="empty" id="empty">Press “Run tests” to see the devices live.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+  const sample = `Feature: Send a notification from the web console to an Android device
+
+  Background:
+    Given [android] open Chrome, go to {receiverUrl}, tap Subscribe and allow notifications
+    And [web] open {consoleUrl}
+
+  @smoke
+  Scenario: Basic notification is delivered
+    When [web] enter title "Hello QA" and body "Test message 01"
+    And [web] click Send
+    Then [web] the page shows that the notification was sent successfully
+    And [android] the notification shade shows "Hello QA" and "Test message 01"
+`;
+  try { $('gherkin').value = localStorage.getItem('gherkin.v4') || ''; } catch { $('gherkin').value = ''; }
+  $('gherkin').addEventListener('input', () => { try { localStorage.setItem('gherkin.v4', $('gherkin').value); } catch {} });
+
+  // ---- test-case list (parsed server-side from the Gherkin text)
+  let controller = null;
+  let cases = [];                 // [{ name, tags, steps, devices }]
+  const selected = new Set();
+  const rows = new Map();         // name -> row element
+  const caseStatus = (name, st) => {
+    const row = rows.get(name); if (!row) return;
+    row.className = 'tc ' + st;
+    row.querySelector('.st').innerHTML = st === 'running' ? '<span class="spin"></span>' : st === 'pass' ? '<span class="ok">✓</span>' : st === 'fail' ? '<span class="bad">✗</span>' : '';
+  };
+  const updateSel = () => {
+    $('tcSel').textContent = `${selected.size}/${cases.length} selected`;
+    $('run').textContent = selected.size === cases.length ? 'Run all' : `Run selected (${selected.size})`;
+    $('run').disabled = !selected.size || !!controller;
+    $('tcAll').checked = cases.length > 0 && selected.size === cases.length;
+  };
+  const renderCases = () => {
+    $('tcList').innerHTML = ''; rows.clear();
+    $('tcCount').textContent = `Test cases (${cases.length})`;
+    if (!cases.length) { $('tcList').innerHTML = '<div class="hint" style="padding:.6rem">No scenarios found.</div>'; updateSel(); return; }
+    for (const c of cases) {
+      const row = document.createElement('div');
+      row.className = 'tc';
+      row.innerHTML = `<input type="checkbox" ${selected.has(c.name) ? 'checked' : ''} />
+        <div class="nm">${esc(c.name)}<div class="meta">${c.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join('')}${c.steps} steps · ${c.devices.join(' + ')}</div></div>
+        <span class="st"></span>`;
+      const cb = row.querySelector('input');
+      row.onclick = (e) => { if (e.target !== cb) cb.checked = !cb.checked; cb.checked ? selected.add(c.name) : selected.delete(c.name); updateSel(); };
+      $('tcList').appendChild(row); rows.set(c.name, row);
+    }
+    updateSel();
+  };
+  let parseTimer;
+  const refreshCases = () => {
+    clearTimeout(parseTimer);
+    parseTimer = setTimeout(async () => {
+      try {
+        const r = await (await fetch('/api/scenarios', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ gherkin: $('gherkin').value }) })).json();
+        const names = new Set(r.scenarios.map((c) => c.name));
+        for (const n of [...selected]) if (!names.has(n)) selected.delete(n);
+        for (const c of r.scenarios) if (!cases.some((o) => o.name === c.name)) selected.add(c.name); // new ones start selected
+        cases = r.scenarios;
+        renderCases();
+      } catch {}
+    }, 250);
+  };
+  $('gherkin').addEventListener('input', refreshCases);
+  $('tcAll').onchange = () => { selected.clear(); if ($('tcAll').checked) cases.forEach((c) => selected.add(c.name)); renderCases(); };
+
+  fetch('/api/features').then((r) => r.json()).then((list) => {
+    for (const f of list) {
+      const o = document.createElement('option');
+      o.value = f.name; o.textContent = f.name; $('examples').appendChild(o);
+    }
+    const load = (f) => { $('gherkin').value = f.content; $('gherkin').dispatchEvent(new Event('input')); };
+    $('examples').onchange = () => { const f = list.find((x) => x.name === $('examples').value); if (f) load(f); };
+    if (!$('gherkin').value.trim()) {
+      const first = list.find((x) => x.name === 'push-notification.feature') || list[0];
+      if (first) { $('examples').value = first.name; load(first); }
+    } else refreshCases();
+  }).catch(() => {});
+
+  // ---- tabs & device view
+  const showTab = (name) => {
+    $('tabCases').classList.toggle('active', name === 'cases');
+    $('tabProgress').classList.toggle('active', name === 'progress');
+    $('paneCases').classList.toggle('active', name === 'cases');
+    $('paneProgress').classList.toggle('active', name === 'progress');
+  };
+  $('tabCases').onclick = () => showTab('cases');
+  $('tabProgress').onclick = () => showTab('progress');
+
+  let view = 'split';
+  const applyView = () => {
+    $('shotAndroid').classList.toggle('show', view !== 'web' && $('androidImg').hasAttribute('src'));
+    $('shotWeb').classList.toggle('show', view !== 'android' && $('webImg').hasAttribute('src'));
+    $('empty').style.display = $('androidImg').hasAttribute('src') || $('webImg').hasAttribute('src') ? 'none' : 'block';
+    document.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+  };
+  document.querySelectorAll('.seg button').forEach((b) => { b.onclick = () => { view = b.dataset.view; applyView(); }; });
+
+  const loadShot = (img, file, label) => {
+    const probe = new Image();
+    probe.onload = () => {
+      img.src = probe.src;
+      if (label) $('size').textContent = `size : ${probe.naturalWidth}×${probe.naturalHeight}`;
+      applyView();
+    };
+    probe.src = '/live/' + file + '?t=' + Date.now();
+  };
+  const refreshShots = () => {
+    loadShot($('webImg'), 'web.jpg', false);
+    loadShot($('androidImg'), 'android.png', view !== 'web');
+  };
+
+  // ---- timeline
+  let steps = [];       // { el, tipsEl, iconEl, lastTip }
+  let currentScenarioEl;
+
+  const closeTip = (st) => {
+    if (st?.lastTip) st.lastTip.querySelector('.icon').innerHTML = '<span class="ok">✓</span>';
+    if (st) st.lastTip = null;
+  };
+
+  const onEvent = (ev) => {
+    if (ev.t === 'info') {
+      if ($('timeline').querySelector('.hint')) $('timeline').innerHTML = '';
+      const n = document.createElement('div');
+      n.className = 'hint';
+      n.textContent = 'ℹ ' + ev.text;
+      $('timeline').appendChild(n);
+    } else if (ev.t === 'scenario') {
+      steps = [];
+      currentScenarioEl = document.createElement('div');
+      currentScenarioEl.className = 'scenario';
+      currentScenarioEl.textContent = 'Scenario: ' + ev.name;
+      caseStatus(ev.name, 'running');
+      if ($('timeline').querySelector('.hint')) $('timeline').innerHTML = '';
+      $('timeline').appendChild(currentScenarioEl);
+    } else if (ev.t === 'scenarioEnd') {
+      caseStatus(ev.name, ev.ok ? 'pass' : 'fail');
+    } else if (ev.t === 'step') {
+      if (ev.phase === 'start') {
+        const el = document.createElement('div');
+        el.className = 'step';
+        el.innerHTML = `<div class="head"><span class="icon"><span class="spin"></span></span>
+          <span class="txt"><b class="kw">${esc(ev.label.split(' ')[0])}</b><span class="badge ${ev.agent}">${ev.agent}</span>${esc(ev.label.replace(/^\w+ \[\w+\] /, ''))}</span></div>
+          <div class="tips"></div>`;
+        $('timeline').appendChild(el);
+        steps[ev.idx] = { el, tipsEl: el.querySelector('.tips'), iconEl: el.querySelector('.icon'), lastTip: null };
+        el.scrollIntoView({ block: 'nearest' });
+      } else {
+        const st = steps[ev.idx];
+        if (!st) return;
+        closeTip(st);
+        st.iconEl.innerHTML = ev.phase === 'ok' ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
+        const n = st.tipsEl.children.length;
+        if (ev.phase === 'ok') {   // collapse finished steps so the Gherkin lines stay readable
+          st.el.classList.add('done');
+          if (n) {
+            const more = document.createElement('div');
+            more.className = 'more'; more.textContent = `▸ ${n} actions`;
+            st.el.insertBefore(more, st.tipsEl);
+            st.el.querySelector('.head').onclick = () => {
+              st.el.classList.toggle('open');
+              more.textContent = `${st.el.classList.contains('open') ? '▾' : '▸'} ${n} actions`;
+            };
+          }
+        }
+        if (ev.phase === 'fail') {
+          st.el.classList.add('fail');
+          const e = document.createElement('div');
+          e.className = 'err';
+          e.textContent = ev.error;
+          st.el.appendChild(e);
+        }
+      }
+    } else if (ev.t === 'tip') {
+      const st = [...steps].reverse().find(Boolean);
+      if (!st) return;
+      closeTip(st);
+      const tip = document.createElement('div');
+      tip.className = 'tip';
+      tip.innerHTML = `<span class="icon"><span class="spin"></span></span><span>${esc(ev.tip)}</span>`;
+      st.tipsEl.appendChild(tip);
+      st.lastTip = tip;
+    } else if (ev.t === 'summary') {
+      $('summary').textContent = `${ev.passed}/${ev.total} scenarios passed`;
+      $('summary').className = ev.passed === ev.total ? 'ok' : 'bad';
+    }
+  };
+
+  const onLine = (line) => {
+    if (line.startsWith('@@')) { try { onEvent(JSON.parse(line.slice(2))); } catch {} return; }
+    const m = /^\s*report: (.+)$/.exec(line);
+    if (m && m[1].includes('midscene_run/')) {
+      if ($('reports').querySelector('.hint')) $('reports').innerHTML = '';
+      const a = document.createElement('a');
+      a.href = '/midscene_run/' + m[1].split('midscene_run/')[1];
+      a.target = '_blank';
+      a.textContent = m[1].split('/').slice(-2).join('/');
+      $('reports').appendChild(a);
+    }
+    if (/^(dbug |Midscene - report file updated)/.test(line) || !line.trim()) return;
+    $('raw').textContent += line + '\n';
+  };
+
+  // ---- run
+  let liveTimer;
+  $('run').addEventListener('click', async () => {
+    $('timeline').innerHTML = '<span class="hint">Starting…</span>';
+    $('reports').innerHTML = '<span class="hint">Appear when the run finishes.</span>';
+    $('raw').textContent = '';
+    $('summary').textContent = 'Running…'; $('summary').className = '';
+    for (const n of selected) caseStatus(n, '');
+    $('androidImg').removeAttribute('src'); $('webImg').removeAttribute('src'); applyView();
+    $('run').disabled = true; $('stop').disabled = false;
+    showTab('progress');
+    liveTimer = setInterval(refreshShots, 900);
+    controller = new AbortController();
+    try {
+      const res = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ gherkin: $('gherkin').value, scenarios: [...selected] }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        lines.forEach(onLine);
+      }
+      if (buf) onLine(buf);
+      if ($('summary').textContent === 'Running…') $('summary').textContent = 'Finished';
+    } catch (err) {
+      $('summary').textContent = err.name === 'AbortError' ? 'Stopped' : 'Error: ' + err.message;
+      $('summary').className = 'bad';
+    } finally {
+      controller = null; updateSel(); $('stop').disabled = true;
+      clearInterval(liveTimer); refreshShots();
+    }
+  });
+  $('stop').addEventListener('click', () => controller?.abort());
+</script>
+</body>
+</html>

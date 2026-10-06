@@ -1,0 +1,14 @@
+node_modules/
+.env
+.dev.vars
+.wrangler/
+midscene_run/
+reports/
+dist/
+video/*.webm
+video/tmp/
+video/audio/
+video/*.ass
+video/*.mp4
+video/*.png
+video/timeline.json

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notification Console</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 520px; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin-top: 1rem; font-weight: 600; }
+    input, textarea { width: 100%; box-sizing: border-box; padding: .6rem; font-size: 1rem; }
+    button { margin-top: 1.2rem; font-size: 1.1rem; padding: .7rem 1.4rem; }
+    #status { margin-top: 1rem; padding: .7rem; border-radius: 6px; display: none; }
+    #status.ok { display: block; background: #e6f6ea; color: #14602b; }
+    #status.err { display: block; background: #fdeaea; color: #8a1c1c; }
+  </style>
+</head>
+<body>
+  <h1>Notification Console</h1>
+
+  <label for="code">Pairing code</label>
+  <input id="code" inputmode="numeric" placeholder="6-digit code from the receiver" />
+
+  <label for="title">Title</label>
+  <input id="title" placeholder="Notification title" />
+
+  <label for="body">Body</label>
+  <textarea id="body" rows="3" placeholder="Notification message"></textarea>
+
+  <button id="send">Send</button>
+  <div id="status" role="status"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    $('code').value = new URLSearchParams(location.search).get('code') || '';
+    $('send').addEventListener('click', async () => {
+      const status = $('status');
+      status.className = '';
+      try {
+        const res = await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            code: $('code').value.trim(),
+            title: $('title').value,
+            body: $('body').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Send failed');
+        status.textContent = 'Notification sent successfully';
+        status.className = 'ok';
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+        status.className = 'err';
+      }
+    });
+  </script>
+</body>
+</html>

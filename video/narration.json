@@ -1,0 +1,72 @@
+[
+ {
+  "id": "intro",
+  "caption": "Test cases written in Gherkin",
+  "text": "Here are the test cases, written in plain Gherkin. The tester picks which ones to run.",
+  "audio": "video/audio/intro.wav",
+  "dur": 5.24
+ },
+ {
+  "id": "run",
+  "caption": "One click to run",
+  "text": "One click starts the run.",
+  "audio": "video/audio/run.wav",
+  "dur": 2.04
+ },
+ {
+  "id": "web",
+  "caption": "Step 1: open the web console",
+  "text": "First, it opens the web console on the desktop.",
+  "audio": "video/audio/web.wav",
+  "dur": 3.52
+ },
+ {
+  "id": "home",
+  "caption": "Step 2: phone on the Home screen",
+  "text": "Then the phone goes to its Home screen, and old notifications are cleared.",
+  "audio": "video/audio/home.wav",
+  "dur": 4.44
+ },
+ {
+  "id": "open",
+  "caption": "Step 3: open the app",
+  "text": "Next it opens the app on the phone and loads the receiver page.",
+  "audio": "video/audio/open.wav",
+  "dur": 4.32
+ },
+ {
+  "id": "wait",
+  "caption": "Wait for a condition, no sleeps",
+  "text": "There are no fixed sleeps. It waits until the page is really shown.",
+  "audio": "video/audio/wait.wav",
+  "dur": 5.08
+ },
+ {
+  "id": "subscribe",
+  "caption": "AI taps Subscribe",
+  "text": "The AI taps Subscribe, then waits for the pairing code to appear.",
+  "audio": "video/audio/subscribe.wav",
+  "dur": 4.8
+ },
+ {
+  "id": "send",
+  "caption": "Web sends the notification",
+  "text": "Back on the web, it enters the pairing code, the title and the message, and clicks Send.",
+  "audio": "video/audio/send.wav",
+  "dur": 6.32
+ },
+ {
+  "id": "result",
+  "caption": "Check the Android shade",
+  "text": "Finally, it opens the notification shade on Android and confirms the message arrived.",
+  "audio": "video/audio/result.wav",
+  "dur": 5.52
+ },
+ {
+  "id": "closing",
+  "caption": "Test case passed",
+  "text": "The test case turns green. One Gherkin file, from the web to a native app.",
+  "audio": "video/audio/closing.wav",
+  "dur": 5.76
+ }
+]
